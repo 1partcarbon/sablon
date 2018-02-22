@@ -109,6 +109,37 @@ module Sablon
         image.local_rid = image.rid_by_file[env.document.current_entry]
       end
     end
+
+    class Chart < Struct.new(:chart_reference, :block)
+      def evaluate(env)
+        chart = chart_reference.evaluate(env.context)
+        set_local_rid(env, chart) if chart
+        block.replace(chart)
+      end
+
+      private
+
+      def set_local_rid(env, chart)
+        if chart.rid_by_file.keys.empty?
+          # Only add the image once, it is reused afterwards
+          rel_attr = {
+            Type: 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart'
+          }
+          rid = env.document.add_chart(chart.name, chart.data, rel_attr)
+          chart.rid_by_file[env.document.current_entry] = rid
+        elsif chart.rid_by_file[env.document.current_entry].nil?
+          # locate an existing relationship and duplicate it
+          entry = chart.rid_by_file.keys.first
+          value = chart.rid_by_file[entry]
+          #
+          rel = env.document.find_relationship_by('Id', value, entry)
+          rid = env.document.add_relationship(rel.attributes)
+          chart.rid_by_file[env.document.current_entry] = rid
+        end
+        #
+        chart.local_rid = chart.rid_by_file[env.document.current_entry]
+      end
+    end
   end
 
   module Expression

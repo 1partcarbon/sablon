@@ -225,9 +225,29 @@ module Sablon
       end
     end
 
+    # Handles reading chart data and inserting it into the document
+    class Chart < Struct.new(:name, :data, :local_rid)
+      attr_reader :rid_by_file
+
+      def self.id; :chart end
+      def self.wraps?(value) false end
+
+      def inspect
+        "#<Chart #{name}:#{@rid_by_file}>"
+      end
+
+      def initialize(name, data)
+        super name, data
+        @rid_by_file = {}
+      end
+
+      def append_to(paragraph, display_node, env) end
+    end
+
     register Sablon::Content::String
     register Sablon::Content::WordML
     register Sablon::Content::HTML
     register Sablon::Content::Image
+    register Sablon::Content::Chart
   end
 end

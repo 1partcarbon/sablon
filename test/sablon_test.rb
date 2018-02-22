@@ -176,3 +176,30 @@ class SablonImagesTest < Sablon::TestCase
     assert_docx_equal @sample_path, @output_path
   end
 end
+
+class SablonChartTest < Sablon::TestCase
+  include XMLSnippets
+
+  def setup
+    super
+    @base_path = Pathname.new(File.expand_path("../", __FILE__))
+    @template_path = @base_path + "fixtures/chart_template.docx"
+    @output_path = @base_path + "sandbox/chart.docx"
+    @sample_path = @base_path + "fixtures/chart_sample.docx"
+  end
+
+  def test_generate_document_from_template
+    template = Sablon.template @template_path
+
+    chart1 = Sablon.content(:chart, 'chart1', snippet('chart'))
+    chart2 = Sablon.content(:chart, 'chart2', snippet('chart2'))
+
+    context = {
+      chart: chart1,
+      chart2: chart2
+    }
+
+    template.render_to_file @output_path, context
+    assert_docx_equal @sample_path, @output_path
+  end
+end

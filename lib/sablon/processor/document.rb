@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+#
+#
 module Sablon
   module Processor
     class Document
@@ -43,7 +45,7 @@ module Sablon
 
       class Block < Struct.new(:start_field, :end_field)
         def self.enclosed_by(start_field, end_field)
-          @blocks ||= [ImageBlock, RowBlock, ParagraphBlock, InlineParagraphBlock]
+          @blocks ||= [ChartBlock, ImageBlock, RowBlock, ParagraphBlock, InlineParagraphBlock]
           block_class = @blocks.detect { |klass| klass.encloses?(start_field, end_field) }
           block_class.new start_field, end_field
         end
@@ -151,6 +153,48 @@ module Sablon
         end
       end
 
+      class ChartBlock < ParagraphBlock
+        def self.parent(node)
+          node.ancestors(".//w:p").first
+        end
+
+        def self.encloses?(start_field, end_field)
+          start_field.expression.start_with?('$')
+        end
+
+        def replace(chart)
+          #
+          if chart
+            nodes_between_fields.each do |node|
+              chart_prop = node.at_xpath('.//wp:docPr', wp: 'http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing')
+              chart_prop.attributes['name'].value = chart.name if chart_prop
+              rid = node.at_xpath('.//c:chart', c: 'http://schemas.openxmlformats.org/drawingml/2006/chart')
+              rid.attributes['id'].value = chart.local_rid if rid
+            end
+          end
+          #
+          start_field.remove
+          end_field.remove
+        end
+
+        private
+
+        # Collects all nodes between the two nodes provided into an array.
+        # Each entry in the array should be a paragraph tag.
+        # https://stackoverflow.com/a/820776
+        def nodes_between_fields
+          first = self.class.parent(start_field)
+          last = self.class.parent(end_field)
+          #
+          result = [first]
+          until first == last
+            first = first.next
+            result << first
+          end
+          result
+        end
+      end
+
       class InlineParagraphBlock < Block
         def self.parent(node)
           node.ancestors ".//w:p"
@@ -208,6 +252,9 @@ module Sablon
           when /^@([^ ]+):start/
             block = consume_block("@#{$1}:end")
             Statement::Image.new(Expression.parse($1), block)
+          when /^\$([^ ]+):start/
+            block = consume_block("$#{$1}:end")
+            Statement::Chart.new(Expression.parse($1), block)
           when /^comment$/
             block = consume_block("endComment")
             Statement::Comment.new(block)

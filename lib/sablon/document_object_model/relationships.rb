@@ -39,6 +39,27 @@ module Sablon
             add_content_type(extension, type)
             add_relationship(rel_attr)
           end
+
+          #
+          # adds file to the /word/chart folder without overwriting an
+          # existing file
+          define_method(:add_chart) do |name, data, rel_attr|
+            rel_attr[:Target] = "charts/#{name}.xml"
+            extension = 'xml'
+            type = rel_attr[:Type]
+            # if @zip_contents["word/#{rel_attr[:Target]}"]
+            #   names = @zip_contents.keys.map { |n| n }
+            #   pattern = "^(\\d+)-#{name}"
+            #   max_val = names.collect { |n| n.match(pattern).to_a[1].to_i }.max
+            #   rel_attr[:Target] = "charts/#{max_val + 1}-#{name}"
+            # end
+            # add the content to the zip and create the relationship
+            @zip_contents["word/#{rel_attr[:Target]}"] = data
+            add_content_type(extension, type)
+            add_relationship(rel_attr)
+          end
+
+
           #
           # locates an existing rId in the approprirate rels file
           define_method(:find_relationship_by) do |attribute, value, entry = nil|
